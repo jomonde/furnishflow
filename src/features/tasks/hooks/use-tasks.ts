@@ -35,6 +35,15 @@ export function useTasks(clientId?: string): UseTasksResult {
   const [error, setError] = useState<Error | null>(null);
 
   const fetchTasks = useCallback(async () => {
+    if (!supabase) {
+      const error = new Error('Supabase client is not available');
+      console.error(error);
+      setError(error);
+      setTasks(null);
+      setLoading(false);
+      return;
+    }
+
     try {
       setLoading(true);
       setError(null);
@@ -65,6 +74,12 @@ export function useTasks(clientId?: string): UseTasksResult {
   }, [clientId]);
 
   const createTask = async (task: Omit<Task, 'id' | 'created_at' | 'updated_at'>) => {
+    if (!supabase) {
+      const error = new Error('Supabase client is not available');
+      console.error(error);
+      throw error;
+    }
+
     try {
       const { data, error: createError } = await supabase
         .from('tasks')
@@ -75,6 +90,7 @@ export function useTasks(clientId?: string): UseTasksResult {
       if (createError) throw createError;
       
       setTasks(prev => prev ? [...prev, data] : [data]);
+      return data;
     } catch (err) {
       console.error('Error creating task:', err);
       throw err;
@@ -82,6 +98,12 @@ export function useTasks(clientId?: string): UseTasksResult {
   };
 
   const updateTask = async (id: string, updates: Partial<Task>) => {
+    if (!supabase) {
+      const error = new Error('Supabase client is not available');
+      console.error(error);
+      throw error;
+    }
+
     try {
       const { data, error: updateError } = await supabase
         .from('tasks')
@@ -95,6 +117,7 @@ export function useTasks(clientId?: string): UseTasksResult {
       setTasks(prev => 
         prev ? prev.map(t => t.id === id ? { ...t, ...data } : t) : null
       );
+      return data;
     } catch (err) {
       console.error('Error updating task:', err);
       throw err;
@@ -102,6 +125,12 @@ export function useTasks(clientId?: string): UseTasksResult {
   };
 
   const deleteTask = async (id: string) => {
+    if (!supabase) {
+      const error = new Error('Supabase client is not available');
+      console.error(error);
+      throw error;
+    }
+
     try {
       const { error: deleteError } = await supabase
         .from('tasks')
