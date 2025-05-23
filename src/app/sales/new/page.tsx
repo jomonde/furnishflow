@@ -12,8 +12,8 @@ import { Popover, PopoverContent, PopoverTrigger } from '@/components/ui/popover
 import { CalendarIcon, Plus, X } from 'lucide-react';
 import { format } from 'date-fns';
 import { cn } from '@/lib/utils';
-import { useSales } from '@/features/sales/hooks/use-sales';
-import { useClients } from '@/features/clients/hooks/use-clients';
+import { useSales } from '@/features/entities/hooks';
+import { useClients } from '@/features/entities/hooks';
 import { Icons } from '@/components/icons';
 import { useToast } from '@/components/ui/use-toast';
 import { Form, FormControl, FormDescription, FormField, FormItem, FormLabel, FormMessage } from '@/components/ui/form';
@@ -31,8 +31,8 @@ const formSchema = z.object({
 export default function NewSalePage() {
   const router = useRouter();
   const { toast } = useToast();
-  const { createSale } = useSales();
-  const { clients, loading: clientsLoading } = useClients();
+  const { create } = useSales();
+  const { data: clients, loading: clientsLoading } = useClients();
 
   const form = useForm<z.infer<typeof formSchema>>({
     resolver: zodResolver(formSchema),
@@ -46,13 +46,14 @@ export default function NewSalePage() {
 
   async function onSubmit(values: z.infer<typeof formSchema>) {
     try {
-      const newSale = await createSale({
+      const newSale = await create({
         ...values,
-        status: values.status as any, // Type assertion since we know it's valid
+        status: values.status,
         amount: values.amount || 0,
         probability: values.probability || 0,
-        expected_close_date: values.expected_close_date?.toISOString(),
-        notes: values.notes || null, // Convert undefined to null for the database
+        expected_close_date: values.expected_close_date?.toISOString() || null,
+        notes: values.notes || '',
+        items: [], // Initialize with empty items array
       });
       
       toast({
@@ -105,7 +106,7 @@ export default function NewSalePage() {
                       </SelectTrigger>
                     </FormControl>
                     <SelectContent>
-                      {clients?.map((client) => (
+                      {Array.isArray(clients) && clients.map((client: any) => (
                         <SelectItem key={client.id} value={client.id}>
                           {client.first_name} {client.last_name}
                         </SelectItem>

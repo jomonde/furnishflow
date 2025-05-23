@@ -1,7 +1,9 @@
 "use client";
 
 import { useState, useMemo } from 'react';
-import { useSales, type SaleStatus } from '@/features/sales/hooks/use-sales';
+import { useSales } from '@/features/entities/hooks';
+import type { SaleEntity } from '@/features/entities/hooks/use-sales';
+import type { SaleStatus } from '@/types';
 import { Button } from '@/components/ui/button';
 import { Icons } from '@/components/icons';
 import { format } from 'date-fns';
@@ -12,13 +14,14 @@ import { Badge } from '@/components/ui/badge';
 type StatusFilter = 'all' | SaleStatus;
 
 export default function SalesPage() {
-  const { sales, loading, error } = useSales();
+  const { data: sales, loading, error } = useSales();
   const [statusFilter, setStatusFilter] = useState<StatusFilter>('all');
 
   const filteredSales = useMemo(() => {
     if (!sales) return [];
-    if (statusFilter === 'all') return sales;
-    return sales.filter(sale => sale.status === statusFilter);
+    const salesArray = Array.isArray(sales) ? sales : [sales];
+    if (statusFilter === 'all') return salesArray;
+    return salesArray.filter(sale => sale.status === statusFilter);
   }, [sales, statusFilter]);
 
   const getStatusBadgeVariant = (status: string) => {
@@ -96,7 +99,10 @@ export default function SalesPage() {
                 <CardHeader className="pb-2">
                   <div className="flex justify-between items-start">
                     <CardTitle className="text-lg">
-                      {sale.clients?.name || 'Unnamed Client'}
+                      {sale.client?.name || 'No client'}
+                      {sale.client?.email && (
+                        <span className="text-xs text-gray-500">• {sale.client.email}</span>
+                      )}
                     </CardTitle>
                     <Badge variant={getStatusBadgeVariant(sale.status)}>
                       {sale.status.split('_').map((word: string) => word.charAt(0).toUpperCase() + word.slice(1)).join(' ')}

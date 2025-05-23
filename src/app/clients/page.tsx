@@ -8,7 +8,7 @@ import { Icons } from "@/components/icons"
 import { Client, ClientStatus } from "@/types"
 import { ErrorBoundary } from "@/components/error-boundary"
 import { Loading } from "@/components/ui/loading"
-import { useClients } from "@/features/clients/hooks/use-clients"
+import { useClients } from "@/features/entities/hooks"
 import {
   Table,
   TableBody,
@@ -20,14 +20,14 @@ import {
 
 function ClientsContent() {
   const [searchQuery, setSearchQuery] = useState("")
-  const { clients, loading, error, refresh } = useClients()
+  const { data: clients, loading, error, refresh } = useClients()
 
-  const filteredClients = useMemo<Client[]>(() => {
+  const filteredClients = useMemo(() => {
     if (!clients) return [];
     if (!searchQuery.trim()) return clients;
     
     const query = searchQuery.toLowerCase().trim();
-    return clients.filter((client) => {
+    return (Array.isArray(clients) ? clients : [clients]).filter((client) => {
       // Safely access client properties with null checks
       const firstName = client.first_name ?? '';
       const lastName = client.last_name ?? '';
@@ -101,7 +101,7 @@ function ClientsContent() {
     )
   }
 
-  if (!clients || clients.length === 0) {
+  if (!filteredClients || !Array.isArray(filteredClients) || filteredClients.length === 0) {
     return (
       <div className="text-center py-12">
         <Icons.users className="mx-auto h-12 w-12 text-gray-400" />

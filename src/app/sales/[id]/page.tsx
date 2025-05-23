@@ -1,9 +1,9 @@
 "use client";
 
 import { useParams, useRouter } from 'next/navigation';
-import { useSales } from '@/features/sales/hooks/use-sales';
+import { useSales } from '@/features/entities/hooks';
 import { Button } from '@/components/ui/button';
-import { SaleItem } from '@/types';
+import type { SaleStatus, SaleItem } from '@/types';
 import { Icons } from '@/components/icons';
 import { format } from 'date-fns';
 import Link from 'next/link';
@@ -16,9 +16,11 @@ export default function SaleDetailPage() {
   const { id } = useParams<{ id: string }>();
   const router = useRouter();
 
-  const { sales, updateSale, deleteSale } = useSales();
+  const { data: sales, loading, update, remove } = useSales();
   
-  const sale = sales?.find(s => s.id === id);
+  const sale = Array.isArray(sales) 
+    ? sales.find(s => s.id === id)
+    : sales?.id === id ? sales : null;
   
   if (!sale) {
     return (
@@ -35,9 +37,9 @@ export default function SaleDetailPage() {
     );
   }
 
-  const handleStatusChange = async (newStatus: string) => {
+  const handleStatusChange = async (newStatus: SaleStatus) => {
     try {
-      await updateSale(sale.id, { status: newStatus });
+      await update(sale.id, { status: newStatus });
       toast.success(`Sale status updated to ${newStatus.replace('_', ' ')}.`);
     } catch (error) {
       toast.error('Failed to update sale status.');
@@ -47,7 +49,7 @@ export default function SaleDetailPage() {
   const handleDelete = async () => {
     if (window.confirm('Are you sure you want to delete this sale? This action cannot be undone.')) {
       try {
-        await deleteSale(sale.id);
+        await remove(sale.id);
         toast.success('The sale has been deleted successfully.');
         router.push('/sales');
       } catch (error) {
@@ -76,7 +78,7 @@ export default function SaleDetailPage() {
         <div>
           <h1 className="text-2xl font-bold tracking-tight">Sale Details</h1>
           <p className="text-muted-foreground">
-            {sale.clients?.name || 'Unnamed Client'}
+            {sale.client?.name || 'Unnamed Client'}
           </p>
         </div>
         <div className="flex space-x-2">
@@ -138,11 +140,9 @@ export default function SaleDetailPage() {
                     ? format(new Date(sale.expected_close_date), 'MMM d, yyyy') 
                     : 'Not set'}
                 </div>
-                <p className="text-xs text-muted-foreground">
-                  {sale.expected_close_date 
-                    ? format(new Date(sale.expected_close_date), 'EEEE, MMMM d, yyyy')
-                    : 'No close date set'}
-                </p>
+                <div className="text-sm text-muted-foreground">
+                  {sale.client?.email || 'No email provided'}
+                </div>
               </CardContent>
             </Card>
           </div>
@@ -156,7 +156,7 @@ export default function SaleDetailPage() {
               <div className="grid grid-cols-2 gap-4">
                 <div>
                   <p className="text-sm text-muted-foreground">Client</p>
-                  <p className="font-medium">{sale.clients?.name || 'No client'}</p>
+                  <div className="text-sm font-medium">{sale.client?.name || 'Unnamed Client'}</div>
                 </div>
                 <div>
                   <p className="text-sm text-muted-foreground">Created</p>
@@ -203,10 +203,10 @@ export default function SaleDetailPage() {
                     <div key={item.id} className="border rounded-lg p-4">
                       <div className="flex justify-between">
                         <div>
-                          <p className="font-medium">{item.name}</p>
-                          <p className="text-sm text-muted-foreground">
-                            {item.quantity} × ${item.price?.toFixed(2)} = ${(item.quantity * (item.price || 0)).toFixed(2)}
-                          </p>
+                          <div className="font-medium">{item.description}</div>
+                          <div className="text-sm text-muted-foreground">
+                            ${item.unitPrice.toFixed(2)} × {item.quantity} = ${(item.unitPrice * item.quantity).toFixed(2)}
+                          </div>
                         </div>
                         <div className="flex items-center space-x-2">
                           <Button variant="ghost" size="icon" asChild>
